@@ -92,7 +92,7 @@ export default function ExploreCategories() {
   const activeDotIdx = featuredIdx % cards.length;
 
   return (
-    <section className="relative w-full bg-white py-8 overflow-hidden" id="explore-categories ">
+    <section className="relative w-full bg-white py-8 overflow-hidden" id="explore-categories">
       {/* CSS Grid Background */}
       <div
         className="absolute inset-0 z-0 pointer-events-none opacity-40"

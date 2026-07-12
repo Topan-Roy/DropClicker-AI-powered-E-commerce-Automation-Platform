@@ -22,13 +22,13 @@ export default function AnnouncementActionMenu({ onDelete }) {
 
       {isOpen && (
         <div className="absolute right-0 mt-2 w-36 bg-white rounded-xl border border-gray-100 shadow-lg z-40 py-1 animate-in fade-in zoom-in-95 duration-100">
-          <button 
+          <button
             className="flex w-full px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 text-left cursor-pointer"
             onClick={() => { setIsOpen(false); /* TODO: onEdit() */ }}
           >
             Edit
           </button>
-          <button 
+          <button
             className="flex w-full px-4 py-2.5 text-sm font-semibold text-red-500 hover:bg-red-50 text-left cursor-pointer"
             onClick={() => { setIsOpen(false); onDelete(); }}
           >

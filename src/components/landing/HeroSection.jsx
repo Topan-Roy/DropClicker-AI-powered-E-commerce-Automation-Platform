@@ -245,25 +245,20 @@ const HeroSection = () => {
             {/* Column 1 */}
             <div className="flex flex-col gap-4 animate-scrollUp">
               {[...cards, ...cards].map((_, i) => (
-                <ProductCard key={i} image={i % 2 === 0 ? "/hero.png" : "/hero.png"} />
+                <ProductCard key={i} image={i % 3 === 0 ? "/hero.png" : i % 3 === 1 ? "/hero1.png" : "/hero2.png"} />
               ))}
             </div>
-            {/* Column 2 */}
             {/* Column 2 */}
             <div className="flex flex-col gap-4 animate-scrollDown pt-10">
               {[...cards, ...cards].map((_, i) => (
-                <ProductCard key={i} image={i % 2 !== 0 ? "/hero.png" : "/hero.png"} />
+                <ProductCard key={i} image={i % 3 === 1 ? "/hero.png" : i % 3 === 2 ? "/hero1.png" : "/hero2.png"} />
               ))}
             </div>
-
-
-
-
 
             {/* Column 3 */}
             <div className="flex flex-col gap-4 animate-scrollUp">
               {[...cards, ...cards].map((_, i) => (
-                <ProductCard key={i} image={i % 2 === 0 ? "/hero.png" : "/hero.png"} />
+                <ProductCard key={i} image={i % 3 === 2 ? "/hero.png" : i % 3 === 0 ? "/hero1.png" : "/hero2.png"} />
               ))}
             </div>
           </div>

@@ -96,7 +96,7 @@ export default function TrendingMarketplace() {
   const visibleProducts = DEMO_PRODUCTS.slice(0, INITIAL_COUNT);
 
   return (
-    <section className="relative w-full bg-white overflow-hidden py-12 border-t border-gray-50">
+    <section className="relative w-full bg-white overflow-hidden py-12 border-t border-gray-50" id="trending-marketplace">
 
       {/* FAINT CSS GRID BACKGROUND */}
       <div

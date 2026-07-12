@@ -73,7 +73,7 @@ export default function TestimonialsAndFAQ() {
   const handleNext = () => setActiveTestimonial(i => (i + 1) % testimonials.length);
 
   return (
-    <section className="relative w-full overflow-hidden bg-white">
+    <section className="relative w-full overflow-hidden bg-white" id="faq">
       {/* BACKGROUND IMAGES */}
       <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
         <div

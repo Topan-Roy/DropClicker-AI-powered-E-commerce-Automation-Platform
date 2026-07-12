@@ -10,6 +10,7 @@ import JourneySection from "@/components/landing/JourneySection";
 import LandingNavbar from "@/components/landing/LandingNavbar";
 import TestimonialsAndFAQ from "@/components/landing/TestimonialsAndFAQ";
 import TrendingMarketplace from "@/components/landing/TrendingMarketplace";
+import Pricing from "@/components/landing/Pricing";
 
 
 export default function Home() {
@@ -24,6 +25,7 @@ export default function Home() {
         <ComparisonTable></ComparisonTable>
         <TrendingMarketplace></TrendingMarketplace>
         <JourneySection></JourneySection>
+        <Pricing></Pricing>
         <TestimonialsAndFAQ></TestimonialsAndFAQ>
         <CTABanner></CTABanner>
         <Footer></Footer>
