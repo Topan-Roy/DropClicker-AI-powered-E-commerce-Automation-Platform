@@ -11,7 +11,11 @@ export const loginUser = createAsyncThunk(
       localStorage.setItem('accessToken', accessToken);
       return { user, accessToken };
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Login failed');
+      let errorMsg = error.response?.data?.message || error.message || 'Login failed';
+      if (error.response?.data?.errors?.length > 0) {
+        errorMsg = error.response.data.errors.map(err => err.message).join(', ');
+      }
+      return rejectWithValue(errorMsg);
     }
   }
 );
@@ -23,7 +27,14 @@ export const registerUser = createAsyncThunk(
       const response = await api.post('/auth/register', userData);
       return response.data.message; // Success message
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || 'Registration failed');
+      let errorMsg = error.response?.data?.message || error.message || 'Registration failed';
+      
+      // If there are detailed Zod validation errors, extract them
+      if (error.response?.data?.errors?.length > 0) {
+        errorMsg = error.response.data.errors.map(err => err.message).join(', ');
+      }
+      
+      return rejectWithValue(errorMsg);
     }
   }
 );
