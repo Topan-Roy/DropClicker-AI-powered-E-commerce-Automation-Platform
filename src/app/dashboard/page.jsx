@@ -3,14 +3,9 @@
 // TODO: all data imported from data/overviewData.js — replace imports with API calls/hooks when backend ready
 // import OrdersRevenueChart from '@/components/overview/OrdersRevenueChart';
 
-// Mock Data Import
-import { 
-  statsData, 
-  ordersRevenueData, 
-  storeProjectsData, 
-  recentUsersData, 
-  recentSyncData 
-} from '@/data/overviewData';
+import React, { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchDashboardOverview } from '@/redux/slices/adminSlice';
 import OrdersRevenueChart from '@/components/dashboard/overview/OrdersRevenueChart';
 import RecentSyncActivity from '@/components/dashboard/overview/RecentSyncActivity';
 import RecentUsers from '@/components/dashboard/overview/RecentUsers';
@@ -18,6 +13,27 @@ import StatCard from '@/components/dashboard/overview/StatCard';
 import StoreProjectsChart from '@/components/dashboard/overview/StoreProjectsChart';
 
 export default function OverviewPage() {
+  const dispatch = useDispatch();
+  const { overview, status } = useSelector((state) => state.admin);
+
+  useEffect(() => {
+    if (status === 'idle') {
+      dispatch(fetchDashboardOverview());
+    }
+  }, [dispatch, status]);
+
+  const {
+    statsData = [],
+    ordersRevenueData = [],
+    storeProjectsData = [],
+    recentUsersData = [],
+    recentSyncData = []
+  } = overview || {};
+
+  if (status === 'loading') {
+    return <div className="p-6">Loading dashboard data...</div>;
+  }
+
   return (
     <div className="p-6 bg-gray-50/50 min-h-screen space-y-6">
       

@@ -4,15 +4,32 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Mail, Lock, User, ArrowRight, Chrome, CheckCircle2 } from 'lucide-react';
+import { useDispatch, useSelector } from 'react-redux';
+import { registerUser, clearError } from '@/redux/slices/authSlice';
+import { useRouter } from 'next/navigation';
 
 export default function SignupPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+  
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const { status, error } = useSelector((state) => state.auth);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Signing up with:', name, email, password);
+    dispatch(clearError());
+    setSuccessMsg('');
+    
+    const resultAction = await dispatch(registerUser({ name, email, password, confirmPassword: password }));
+    if (registerUser.fulfilled.match(resultAction)) {
+      setSuccessMsg(resultAction.payload || 'Account created successfully. Please log in.');
+      setTimeout(() => {
+        router.push('/login');
+      }, 3000);
+    }
   };
 
   const perks = [
@@ -65,6 +82,19 @@ export default function SignupPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              
+              {error && (
+                <div className="bg-red-50 text-red-500 p-3 rounded-xl text-sm font-medium border border-red-100">
+                  {error}
+                </div>
+              )}
+              
+              {successMsg && (
+                <div className="bg-green-50 text-green-600 p-3 rounded-xl text-sm font-medium border border-green-100 flex items-center gap-2">
+                  <CheckCircle2 size={18} />
+                  {successMsg}
+                </div>
+              )}
 
               {/* Full Name */}
               <div>
@@ -125,9 +155,10 @@ export default function SignupPage() {
               <div className="pt-2">
                 <button
                   type="submit"
-                  className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3.5 px-4 font-semibold text-[15px] transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 hover:-translate-y-0.5"
+                  disabled={status === 'loading' || successMsg}
+                  className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl py-3.5 px-4 font-semibold text-[15px] transition-all shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 hover:-translate-y-0.5 disabled:opacity-70 disabled:hover:translate-y-0"
                 >
-                  Create Account
+                  {status === 'loading' ? 'Creating Account...' : 'Create Account'}
                   <ArrowRight size={18} />
                 </button>
               </div>

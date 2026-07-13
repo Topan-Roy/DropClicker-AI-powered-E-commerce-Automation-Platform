@@ -4,42 +4,10 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchExploreCategories } from '@/redux/slices/publicSlice';
 
-const cards = [
-  {
-    title: "Furniture",
-    desc: "Home Nursing services provide various medical help and support",
-    image: "/image/35348757cae46117920ebf568d94426ad6e70148.png",
-  },
-  {
-    title: "Outdoor & Garden",
-    desc: "Physical therapy sessions at home for rehabilitation.",
-    image: "/image/b6fbbebf47948751d56da3bf87674f505e5eccd5.jpg",
-  },
-  {
-    title: "Sports & Fitness",
-    desc: "Physical therapy sessions at home for rehabilitation.",
-    image: "/image/b6fbbebf47948751d56da3bf87674f505e5eccd5 (1).jpg",
-  },
-  {
-    title: "Home & Kitchen",
-    desc: "Physical therapy sessions at home for rehabilitation.",
-    image: "/image/b6fbbebf47948751d56da3bf87674f505e5eccd5 (2).jpg",
-  },
-  {
-    title: "Electronics",
-    desc: "Physical therapy sessions at home for rehabilitation.",
-    image: "/image/b6fbbebf47948751d56da3bf87674f505e5eccd5 (1).jpg",
-  },
-  {
-    title: "Beauty & Health",
-    desc: "Physical therapy sessions at home for rehabilitation.",
-    image: "/image/35348757cae46117920ebf568d94426ad6e70148.png",
-  },
-];
-
-// Combine the array multiple times for an infinite looping effect
-const EXTENDED_CARDS = Array(30).fill(cards).flat();
+// Categories will be fetched via Redux
 
 // The sliding math relies on non-featured cards having a constant width
 // Normal Card = 260px, Gap = 24px (gap-6) => Each shift is exactly 284px
@@ -48,9 +16,26 @@ const GAP = 24;
 const OFFSET_PER_SLIDE = NORMAL_CARD_WIDTH + GAP;
 
 export default function ExploreCategories() {
-  const START_IDX = cards.length * 10; // Start in the middle to allow scrolling left
+  const dispatch = useDispatch();
+  const { exploreCategories, status } = useSelector((state) => state.public);
+  
+  const cards = exploreCategories;
+  const START_IDX = cards.length > 0 ? cards.length * 10 : 0;
+  
   const [featuredIdx, setFeaturedIdx] = useState(START_IDX);
   const timerRef = useRef(null);
+
+  useEffect(() => {
+    if (cards.length > 0 && featuredIdx === 0) {
+      setFeaturedIdx(cards.length * 10);
+    }
+  }, [cards.length]);
+
+  useEffect(() => {
+    if (status === 'idle') {
+      dispatch(fetchExploreCategories());
+    }
+  }, [dispatch, status]);
 
   // Auto-scroll logic
   const startTimer = useCallback(() => {
@@ -137,7 +122,7 @@ export default function ExploreCategories() {
                 transition: 'transform 0.7s cubic-bezier(0.25, 1, 0.5, 1)'
               }}
             >
-              {EXTENDED_CARDS.map((card, idx) => {
+              {cards.length > 0 && Array(30).fill(cards).flat().map((card, idx) => {
                 const isFeatured = idx === featuredIdx;
 
                 return (

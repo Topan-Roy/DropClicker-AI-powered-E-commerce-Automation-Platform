@@ -1,7 +1,10 @@
 'use client';
 
+import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { ChevronRight } from 'lucide-react';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchTrendingProducts } from '@/redux/slices/publicSlice';
 
 /**
  * TrendingMarketplace Component
@@ -10,17 +13,7 @@ import { ChevronRight } from 'lucide-react';
  * fetched data (ensure it follows the same object structure).
  */
 
-// 1. DEMO DATA ARRAY — EASY TO REPLACE WITH API LATER
-const DEMO_PRODUCTS = Array.from({ length: 16 }, (_, i) => ({
-  id: i + 1,
-  image: "/landingpagecard.png",
-  category: "Furniture",
-  rating: 4.4,
-  reviews: "22k",
-  name: "2 Seater Sofa with USB Ports & Cup Holders",
-  price: 99.00,
-  profitPerUnit: 19.00,
-}));
+// Products will be fetched via Redux from the backend API
 
 const INITIAL_COUNT = 4;
 
@@ -93,7 +86,16 @@ function ProductCard({ product }) {
 
 // 3. MAIN SECTION COMPONENT
 export default function TrendingMarketplace() {
-  const visibleProducts = DEMO_PRODUCTS.slice(0, INITIAL_COUNT);
+  const dispatch = useDispatch();
+  const { trendingProducts, status } = useSelector((state) => state.public);
+
+  useEffect(() => {
+    if (status === 'idle') {
+      dispatch(fetchTrendingProducts());
+    }
+  }, [dispatch, status]);
+
+  const visibleProducts = trendingProducts.slice(0, INITIAL_COUNT);
 
   return (
     <section className="relative w-full bg-white overflow-hidden py-12 border-t border-gray-50" id="trending-marketplace">
