@@ -34,7 +34,7 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
 export default function DashboardLayout({ children }) {
   return (
-    <ProtectedRoute>
+    <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
       <NavigationProvider>
         <div className="flex min-h-screen bg-white">
           <Sidebar />

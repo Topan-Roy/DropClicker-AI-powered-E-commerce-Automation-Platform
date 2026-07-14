@@ -195,6 +195,8 @@ import {
   ChevronRight, ChevronDown, X,
 } from 'lucide-react';
 import { useUserNavigation } from '@/context/UserNavigationContext';
+import { useDispatch } from 'react-redux';
+import { logoutUser } from '@/redux/slices/authSlice';
 
 const menuItems = [
   { name: 'Dashboard',         icon: LayoutDashboard, path: '/user/dashboard' },
@@ -224,7 +226,14 @@ const SidebarContent = ({ onClose }) => {
   const { setActivePage } = useUserNavigation();
   const router   = useRouter();
   const pathname = usePathname();
+  const dispatch = useDispatch();
   const [aiToolsOpen, setAiToolsOpen] = useState(false);
+
+  const handleLogout = () => {
+    dispatch(logoutUser());
+    router.push('/login');
+    onClose?.();
+  };
 
   useEffect(() => {
     if (pathname?.startsWith('/user/ai-tools')) setAiToolsOpen(true);
@@ -337,7 +346,7 @@ const SidebarContent = ({ onClose }) => {
           </div>
         </div>
         <button
-          onClick={() => { router.push('/'); onClose?.(); }}
+          onClick={handleLogout}
           className="flex w-full items-center justify-center gap-2 rounded-xl bg-white/90 py-2.5 text-sm font-bold text-[#1a0a4b] transition-all hover:bg-white cursor-pointer active:scale-[0.98]"
         >
           <LogOut size={16} /> Log out

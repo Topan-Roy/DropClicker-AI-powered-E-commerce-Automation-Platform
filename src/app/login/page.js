@@ -22,7 +22,7 @@ export default function LoginPage() {
     
     const resultAction = await dispatch(loginUser({ email, password }));
     if (loginUser.fulfilled.match(resultAction)) {
-      router.push('/dashboard');
+      router.push('/');
     }
   };
 

@@ -10,6 +10,8 @@ import {
 } from 'lucide-react';
 import { useNavigation } from '@/context/NavigationContext';
 import Image from 'next/image';
+import { useDispatch } from 'react-redux';
+import { logoutUser } from '@/redux/slices/authSlice';
 
 const menuItems = [
   { name: 'Overview', icon: LayoutDashboard, path: '/dashboard' },
@@ -26,6 +28,13 @@ const menuItems = [
 const SidebarContent = ({ onNavigate, onClose }) => {
   const router = useRouter();
   const pathname = usePathname();
+  const dispatch = useDispatch();
+
+  const handleLogout = () => {
+    dispatch(logoutUser());
+    router.push('/login');
+    onClose?.();
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -112,7 +121,7 @@ const SidebarContent = ({ onNavigate, onClose }) => {
         </button>
 
         <button
-          onClick={() => { router.push('/'); onClose?.(); }}
+          onClick={handleLogout}
           className="w-full flex items-center justify-center gap-2 bg-white/90 hover:bg-white text-[#1a0a4b] font-bold text-sm rounded-xl py-2.5 transition-colors"
         >
           <LogOut size={16} />

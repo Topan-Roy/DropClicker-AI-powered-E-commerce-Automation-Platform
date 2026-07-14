@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import React, { useState, useEffect, useRef } from 'react';
 import { Menu, X, LayoutDashboard, User } from 'lucide-react';
+import { useSelector } from 'react-redux';
 
 const LandingNavbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -20,10 +21,16 @@ const LandingNavbar = () => {
     { name: "FAQ", href: "#faq", id: "faq" },
   ];
 
-  const dashboardLinks = [
-    { name: "Admin Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "User Dashboard", href: "/user", icon: User },
-  ];
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
+
+  let dashboardLinks = [];
+  if (isAuthenticated && user) {
+    if (user.role === 'admin' || user.role === 'super_admin') {
+      dashboardLinks = [{ name: "Admin Dashboard", href: "/dashboard", icon: LayoutDashboard }];
+    } else {
+      dashboardLinks = [{ name: "User Dashboard", href: "/user/dashboard", icon: User }];
+    }
+  }
 
   // Track navbar background on scroll
   useEffect(() => {
@@ -122,15 +129,19 @@ const LandingNavbar = () => {
 
           <div className="h-5 w-px bg-gray-200 mx-1" />
 
-          <Link href="/login" className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors">
-            Log In
-          </Link>
-          <Link
-            href="/signup"
-            className="flex items-center justify-center bg-blue-600 text-white px-5 py-2.5 rounded-full text-sm font-semibold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all"
-          >
-            Sign Up
-          </Link>
+          {!isAuthenticated ? (
+            <>
+              <Link href="/login" className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors">
+                Log In
+              </Link>
+              <Link
+                href="/signup"
+                className="flex items-center justify-center bg-blue-600 text-white px-5 py-2.5 rounded-full text-sm font-semibold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all"
+              >
+                Sign Up
+              </Link>
+            </>
+          ) : null}
         </div>
 
         {/* Mobile Menu Icon */}
@@ -187,22 +198,24 @@ const LandingNavbar = () => {
           </div>
 
           {/* Auth CTAs */}
-          <div className="flex flex-col gap-3 pt-2">
-            <Link
-              href="/login"
-              onClick={() => setIsMenuOpen(false)}
-              className="w-full text-center py-3 text-sm font-semibold text-blue-600 border border-blue-100 rounded-2xl hover:bg-blue-50 transition-colors"
-            >
-              Log In
-            </Link>
-            <Link
-              href="/signup"
-              onClick={() => setIsMenuOpen(false)}
-              className="w-full text-center bg-blue-600 text-white py-3 rounded-2xl text-sm font-semibold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all"
-            >
-              Sign Up
-            </Link>
-          </div>
+          {!isAuthenticated && (
+            <div className="flex flex-col gap-3 pt-2">
+              <Link
+                href="/login"
+                onClick={() => setIsMenuOpen(false)}
+                className="w-full text-center py-3 text-sm font-semibold text-blue-600 border border-blue-100 rounded-2xl hover:bg-blue-50 transition-colors"
+              >
+                Log In
+              </Link>
+              <Link
+                href="/signup"
+                onClick={() => setIsMenuOpen(false)}
+                className="w-full text-center bg-blue-600 text-white py-3 rounded-2xl text-sm font-semibold shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all"
+              >
+                Sign Up
+              </Link>
+            </div>
+          )}
         </div>
       )}
     </nav>

@@ -37,10 +37,12 @@
 import UserSidebar from '@/components/user-dashboard/UserSidebar';
 import UserHeader from '@/components/user-dashboard/UserHeader';
 import { UserNavigationProvider } from '@/context/UserNavigationContext';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
 export default function DashboardLayout({ children }) {
   return (
-    <UserNavigationProvider>
+    <ProtectedRoute allowedRoles={['user']}>
+      <UserNavigationProvider>
       <div className="flex min-h-screen bg-[#f8f9fa]">
         <UserSidebar />
 
@@ -55,5 +57,6 @@ export default function DashboardLayout({ children }) {
         </main>
       </div>
     </UserNavigationProvider>
+    </ProtectedRoute>
   );
 }

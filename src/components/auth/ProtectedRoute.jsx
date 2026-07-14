@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchMe } from '@/redux/slices/authSlice';
 
-export default function ProtectedRoute({ children }) {
+export default function ProtectedRoute({ children, allowedRoles }) {
   const router = useRouter();
   const dispatch = useDispatch();
-  const { isAuthenticated, status, accessToken } = useSelector((state) => state.auth);
+  const { isAuthenticated, status, accessToken, user } = useSelector((state) => state.auth);
   const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
@@ -22,12 +22,22 @@ export default function ProtectedRoute({ children }) {
       } else if (!accessToken) {
         // No token means not logged in
         router.push('/login');
+      } else if (isAuthenticated && user && allowedRoles) {
+        // Check if user has required role
+        if (!allowedRoles.includes(user.role)) {
+          // Redirect based on their actual role
+          if (user.role === 'admin' || user.role === 'super_admin') {
+            router.push('/dashboard');
+          } else {
+            router.push('/user/dashboard');
+          }
+        }
       }
       setIsInitializing(false);
     };
 
     checkAuth();
-  }, [accessToken, isAuthenticated, status, dispatch, router]);
+  }, [accessToken, isAuthenticated, status, user, allowedRoles, dispatch, router]);
 
   // Show a loading state while we verify token
   if (isInitializing || status === 'loading') {
@@ -39,7 +49,10 @@ export default function ProtectedRoute({ children }) {
   }
 
   // If we finished initializing and are authenticated, render children
-  if (isAuthenticated) {
+  if (isAuthenticated && user) {
+    if (allowedRoles && !allowedRoles.includes(user.role)) {
+      return null; // Will be redirected by useEffect
+    }
     return children;
   }
 
