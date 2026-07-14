@@ -12,6 +12,8 @@ import { useNavigation } from '@/context/NavigationContext';
 import Image from 'next/image';
 import { useDispatch, useSelector } from 'react-redux';
 import { logoutUser } from '@/redux/slices/authSlice';
+import { fetchAllUsers } from '@/redux/slices/adminSlice';
+import { useEffect } from 'react';
 
 const menuItems = [
   { name: 'Overview', icon: LayoutDashboard, path: '/dashboard' },
@@ -30,6 +32,12 @@ const SidebarContent = ({ onNavigate, onClose }) => {
   const pathname = usePathname();
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
+  const totalUsers = useSelector((state) => state.admin.totalUsers);
+
+  // Fetch real user count from DB on mount
+  useEffect(() => {
+    dispatch(fetchAllUsers());
+  }, [dispatch]);
 
   const displayName = user?.name || user?.fullName || 'Admin';
   const displayEmail = user?.email || '';
@@ -84,7 +92,29 @@ const SidebarContent = ({ onNavigate, onClose }) => {
                 size={18}
                 className={isActive ? 'text-white' : 'text-gray-400 group-hover:text-white'}
               />
-              <span>{item.name}</span>
+              <span className="flex-1 text-left">{item.name}</span>
+              {item.name === 'Users' && (
+                <span
+                  style={{
+                    marginLeft: 'auto',
+                    minWidth: '22px',
+                    height: '22px',
+                    padding: '0 6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '9999px',
+                    fontSize: '11px',
+                    fontWeight: '700',
+                    background: isActive ? 'rgba(255,255,255,0.25)' : 'rgba(168,85,247,0.25)',
+                    color: isActive ? '#fff' : '#d8b4fe',
+                    transition: 'all 0.2s',
+                    flexShrink: 0,
+                  }}
+                >
+                  {totalUsers === null ? '…' : totalUsers}
+                </span>
+              )}
             </button>
           );
         })}
