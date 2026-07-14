@@ -13,7 +13,7 @@ const api = axios.create({
 // Request Interceptor
 api.interceptors.request.use(
   (config) => {
-    // Get token from localStorage
+    // Get token from localStorage directly
     const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -34,26 +34,29 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        // Attempt to refresh token
+        // Attempt to refresh token using HTTP-only cookie
         const refreshResponse = await axios.post(
           `${API_URL}/auth/refresh-token`,
           {},
           { withCredentials: true }
         );
 
+        // Update token in localStorage
         const newAccessToken = refreshResponse.data.data.accessToken;
-        
-        // Save new token
-        localStorage.setItem('accessToken', newAccessToken);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('accessToken', newAccessToken);
+        }
 
         // Update authorization header and retry original request
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
         return api(originalRequest);
       } catch (refreshError) {
         // If refresh fails, clear token and redirect to login
-        localStorage.removeItem('accessToken');
-        if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-          window.location.href = '/login';
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('accessToken');
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
         }
         return Promise.reject(refreshError);
       }

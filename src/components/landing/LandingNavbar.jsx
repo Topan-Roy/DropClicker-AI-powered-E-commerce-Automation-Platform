@@ -22,10 +22,16 @@ const LandingNavbar = () => {
   ];
 
   const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   let dashboardLinks = [];
-  if (isAuthenticated && user) {
-    if (user.role === 'admin' || user.role === 'super_admin') {
+  if (mounted && isAuthenticated && user) {
+    const userRole = (user.role || '').toLowerCase();
+    if (userRole === 'admin' || userRole === 'super_admin') {
       dashboardLinks = [{ name: "Admin Dashboard", href: "/dashboard", icon: LayoutDashboard }];
     } else {
       dashboardLinks = [{ name: "User Dashboard", href: "/user/dashboard", icon: User }];
@@ -129,7 +135,7 @@ const LandingNavbar = () => {
 
           <div className="h-5 w-px bg-gray-200 mx-1" />
 
-          {!isAuthenticated ? (
+          {mounted && !isAuthenticated ? (
             <>
               <Link href="/login" className="text-sm font-semibold text-blue-600 hover:text-blue-700 transition-colors">
                 Log In
@@ -198,7 +204,7 @@ const LandingNavbar = () => {
           </div>
 
           {/* Auth CTAs */}
-          {!isAuthenticated && (
+          {mounted && !isAuthenticated && (
             <div className="flex flex-col gap-3 pt-2">
               <Link
                 href="/login"
