@@ -1,30 +1,46 @@
 'use client';
 
-import { useState } from 'react';
-import { ImagePlus, User, Mail, Phone, Globe, Lock, Shield, Bell, Trash2, Save, Eye, EyeOff } from 'lucide-react';
+import { useState, useRef } from 'react';
+import {
+  ImagePlus, User, Mail, Lock, Shield, Bell, Trash2, Save,
+  Eye, EyeOff, Camera, CheckCircle, AlertCircle, Loader2, X
+} from 'lucide-react';
+import { useSelector, useDispatch } from 'react-redux';
+import api from '@/services/api';
 
-// Tabs
 const TABS = [
   { id: 'general', label: 'General', icon: User },
   { id: 'security', label: 'Security', icon: Shield },
   { id: 'notifications', label: 'Notifications', icon: Bell },
 ];
 
+const IMGBB_API_KEY = process.env.NEXT_PUBLIC_IMGBB_API_KEY;
+
 export default function ProfilePage() {
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
+
   const [activeTab, setActiveTab] = useState('general');
   const [showCurrentPass, setShowCurrentPass] = useState(false);
   const [showNewPass, setShowNewPass] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
 
-  // Profile form state
-  const [profile, setProfile] = useState({
-    name: 'Jenny Wilson',
-    email: 'jen.wilson@example.com',
-    phone: '+44 7700 900123',
-    website: 'https://jennywilson.store',
-    bio: 'UK-based dropshipping entrepreneur. Running 3 stores on DropClicker.',
-    avatarSeed: 'Jenny',
-  });
+  // Profile form state — initialized from Redux user
+  const [name, setName] = useState(user?.name || '');
+  const [avatarUrl, setAvatarUrl] = useState(user?.avatar || '');
+
+  // Password form state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+
+  // UI states
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [toast, setToast] = useState(null); // { type: 'success' | 'error', message: '' }
+
+  const fileInputRef = useRef(null);
 
   // Notification preferences
   const [notifications, setNotifications] = useState({
@@ -36,13 +52,145 @@ export default function ProfilePage() {
     securityAlerts: true,
   });
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+  const showToast = (type, message) => {
+    setToast({ type, message });
+    setTimeout(() => setToast(null), 3500);
   };
+
+  // ─── Upload avatar to ImgBB ───────────────────────────────────────────────
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      showToast('error', 'শুধু ছবি ফাইল আপলোড করুন।');
+      return;
+    }
+    // Validate size (max 32MB per ImgBB)
+    if (file.size > 32 * 1024 * 1024) {
+      showToast('error', 'ফাইল সাইজ ৩২MB এর বেশি হতে পারবে না।');
+      return;
+    }
+
+    setUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await fetch(
+        `https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`,
+        { method: 'POST', body: formData }
+      );
+      const data = await response.json();
+
+      if (!data.success) throw new Error('ImgBB upload failed');
+
+      const imageUrl = data.data.display_url;
+      setAvatarUrl(imageUrl);
+      showToast('success', 'ছবি সফলভাবে আপলোড হয়েছে! Save করতে ভুলবেন না।');
+    } catch (err) {
+      showToast('error', 'ছবি আপলোড করতে ব্যর্থ হয়েছে। আবার চেষ্টা করুন।');
+    } finally {
+      setUploadingAvatar(false);
+      // Reset file input
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  // ─── Save profile (name + avatar) to backend ─────────────────────────────
+  const handleSaveProfile = async () => {
+    if (!name.trim()) {
+      showToast('error', 'নাম খালি রাখা যাবে না।');
+      return;
+    }
+    setSavingProfile(true);
+    try {
+      const res = await api.patch('/auth/update-profile', {
+        name: name.trim(),
+        avatar: avatarUrl || null,
+      });
+      const updatedUser = res.data.data.user;
+
+      // Update localStorage with fresh user data
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+      }
+      showToast('success', 'প্রোফাইল সফলভাবে আপডেট হয়েছে!');
+    } catch (err) {
+      showToast('error', err.response?.data?.message || 'প্রোফাইল আপডেট করতে ব্যর্থ হয়েছে।');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  // ─── Change password ──────────────────────────────────────────────────────
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      showToast('error', 'সকল পাসওয়ার্ড ফিল্ড পূরণ করুন।');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      showToast('error', 'নতুন পাসওয়ার্ড মিলছে না।');
+      return;
+    }
+    if (newPassword.length < 8) {
+      showToast('error', 'নতুন পাসওয়ার্ড কমপক্ষে ৮ অক্ষর হতে হবে।');
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      await api.patch('/auth/change-password', {
+        currentPassword,
+        newPassword,
+      });
+      showToast('success', 'পাসওয়ার্ড সফলভাবে পরিবর্তন হয়েছে!');
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      showToast('error', err.response?.data?.message || 'পাসওয়ার্ড পরিবর্তন করতে ব্যর্থ হয়েছে।');
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
+  const userRole = (user?.role || '').toLowerCase();
+  const displayAvatar = avatarUrl || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(user?.name || 'User')}&backgroundColor=6366f1`;
 
   return (
     <div className="min-h-screen bg-gray-50/50 p-6 space-y-6">
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`fixed top-5 right-5 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm font-semibold transition-all ${
+          toast.type === 'success'
+            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+            : 'bg-red-50 text-red-600 border border-red-200'
+        }`}>
+          {toast.type === 'success'
+            ? <CheckCircle size={16} className="flex-shrink-0" />
+            : <AlertCircle size={16} className="flex-shrink-0" />}
+          {toast.message}
+          <button onClick={() => setToast(null)} className="ml-2 opacity-60 hover:opacity-100">
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+
       {/* Page Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
@@ -51,36 +199,54 @@ export default function ProfilePage() {
 
       {/* Profile Avatar Card */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col sm:flex-row items-center gap-6">
-        <div className="relative group">
+        {/* Avatar with upload overlay */}
+        <div className="relative group cursor-pointer" onClick={handleAvatarClick}>
           <div className="h-24 w-24 rounded-full overflow-hidden border-4 border-purple-100 shadow-md">
-            <img
-              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${profile.avatarSeed}`}
-              alt="Profile Avatar"
-              className="h-full w-full object-cover"
-            />
+            {uploadingAvatar ? (
+              <div className="h-full w-full flex items-center justify-center bg-purple-50">
+                <Loader2 size={28} className="text-purple-500 animate-spin" />
+              </div>
+            ) : (
+              <img
+                src={displayAvatar}
+                alt="Profile Avatar"
+                className="h-full w-full object-cover"
+                onError={(e) => {
+                  e.target.src = `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(user?.name || 'User')}&backgroundColor=6366f1`;
+                }}
+              />
+            )}
           </div>
-          <button className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-            <ImagePlus size={20} className="text-white" />
-          </button>
+          {!uploadingAvatar && (
+            <div className="absolute inset-0 bg-black/40 rounded-full flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <Camera size={18} className="text-white" />
+              <span className="text-white text-[10px] font-bold mt-1">Upload</span>
+            </div>
+          )}
         </div>
+
+        {/* User info */}
         <div className="text-center sm:text-left">
-          <h2 className="text-xl font-bold text-gray-900">{profile.name}</h2>
-          <p className="text-sm text-gray-500">{profile.email}</p>
-          <span className="inline-flex items-center gap-1 mt-2 bg-purple-100 text-purple-700 text-xs font-semibold px-3 py-1 rounded-full">
-            <Shield size={11} /> Admin
+          <h2 className="text-xl font-bold text-gray-900">{user?.name}</h2>
+          <p className="text-sm text-gray-500">{user?.email}</p>
+          <span className="inline-flex items-center gap-1 mt-2 bg-purple-100 text-purple-700 text-xs font-semibold px-3 py-1 rounded-full capitalize">
+            <Shield size={11} /> {user?.role || 'User'}
           </span>
         </div>
+
+        {/* Save button */}
         <div className="sm:ml-auto">
           <button
-            onClick={handleSave}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${
-              saved
-                ? 'bg-emerald-500 text-white'
-                : 'bg-[#1a0a4b] text-white hover:bg-[#2d1b6b]'
-            }`}
+            onClick={activeTab === 'general' ? handleSaveProfile : handleChangePassword}
+            disabled={savingProfile || savingPassword || uploadingAvatar}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all bg-[#1a0a4b] text-white hover:bg-[#2d1b6b] disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            <Save size={15} />
-            {saved ? 'Saved!' : 'Save Changes'}
+            {(savingProfile || savingPassword) ? (
+              <Loader2 size={15} className="animate-spin" />
+            ) : (
+              <Save size={15} />
+            )}
+            {savingProfile || savingPassword ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </div>
@@ -114,6 +280,8 @@ export default function ProfilePage() {
           <div className="space-y-6 max-w-2xl">
             <h3 className="text-base font-bold text-gray-900">Personal Information</h3>
 
+
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               {/* Full Name */}
               <div className="space-y-1.5">
@@ -122,88 +290,67 @@ export default function ProfilePage() {
                   <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     type="text"
-                    value={profile.name}
-                    onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
                     className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 transition-all"
+                    placeholder="Your full name"
                   />
                 </div>
               </div>
 
-              {/* Email */}
+              {/* Email — read only */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Email Address</label>
                 <div className="relative">
                   <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     type="email"
-                    value={profile.email}
-                    onChange={(e) => setProfile({ ...profile, email: e.target.value })}
-                    className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 transition-all"
+                    value={user?.email || ''}
+                    readOnly
+                    className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-100 bg-gray-50 rounded-xl text-gray-400 cursor-not-allowed"
                   />
                 </div>
+                <p className="text-xs text-gray-400">Email cannot be changed.</p>
               </div>
 
-              {/* Phone */}
+              {/* Role — read only */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Phone Number</label>
+                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Role</label>
                 <div className="relative">
-                  <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <Shield size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
-                    type="tel"
-                    value={profile.phone}
-                    onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                    className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 transition-all"
+                    type="text"
+                    value={user?.role || ''}
+                    readOnly
+                    className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-100 bg-gray-50 rounded-xl text-gray-400 cursor-not-allowed capitalize"
                   />
                 </div>
               </div>
 
-              {/* Website */}
+              {/* Status — read only */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Website</label>
-                <div className="relative">
-                  <Globe size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Account Status</label>
+                <div className="relative flex items-center">
+                  <span className={`w-2 h-2 rounded-full absolute left-3 ${user?.status === 'active' ? 'bg-emerald-500' : 'bg-yellow-400'}`} />
                   <input
-                    type="url"
-                    value={profile.website}
-                    onChange={(e) => setProfile({ ...profile, website: e.target.value })}
-                    className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 transition-all"
+                    type="text"
+                    value={user?.status || ''}
+                    readOnly
+                    className="w-full pl-7 pr-4 py-2.5 text-sm border border-gray-100 bg-gray-50 rounded-xl text-gray-400 cursor-not-allowed capitalize"
                   />
                 </div>
               </div>
             </div>
 
-            {/* Bio */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Bio</label>
-              <textarea
-                rows={3}
-                value={profile.bio}
-                onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-                className="w-full px-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 transition-all resize-none"
-              />
-            </div>
-
-            {/* Avatar seed picker */}
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Avatar Style</label>
-              <div className="flex gap-3 flex-wrap">
-                {['Jenny', 'Alex', 'Sam', 'Jordan', 'Morgan', 'Casey'].map((seed) => (
-                  <button
-                    key={seed}
-                    onClick={() => setProfile({ ...profile, avatarSeed: seed })}
-                    className={`h-12 w-12 rounded-full overflow-hidden border-2 transition-all ${
-                      profile.avatarSeed === seed ? 'border-purple-500 scale-110 shadow-md' : 'border-gray-200 hover:border-purple-300'
-                    }`}
-                  >
-                    <img
-                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`}
-                      alt={seed}
-                      className="h-full w-full object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
+            {/* Save button at bottom of form */}
+            <button
+              onClick={handleSaveProfile}
+              disabled={savingProfile || uploadingAvatar}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold transition-all bg-[#1a0a4b] text-white hover:bg-[#2d1b6b] disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {savingProfile ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+              {savingProfile ? 'Saving...' : 'Save Profile'}
+            </button>
           </div>
         )}
 
@@ -220,14 +367,12 @@ export default function ProfilePage() {
                   <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     type={showCurrentPass ? 'text' : 'password'}
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
                     placeholder="Enter current password"
                     className="w-full pl-9 pr-10 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 transition-all"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowCurrentPass(!showCurrentPass)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
+                  <button type="button" onClick={() => setShowCurrentPass(!showCurrentPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                     {showCurrentPass ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
@@ -240,38 +385,51 @@ export default function ProfilePage() {
                   <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
                     type={showNewPass ? 'text' : 'password'}
-                    placeholder="Enter new password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new password (min 8 chars)"
                     className="w-full pl-9 pr-10 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 transition-all"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPass(!showNewPass)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
+                  <button type="button" onClick={() => setShowNewPass(!showNewPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
                     {showNewPass ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
               </div>
 
-              {/* Confirm new password */}
+              {/* Confirm password */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Confirm New Password</label>
                 <div className="relative">
                   <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                   <input
-                    type="password"
+                    type={showConfirmPass ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Re-enter new password"
-                    className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 transition-all"
+                    className={`w-full pl-9 pr-10 py-2.5 text-sm border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+                      confirmPassword && newPassword !== confirmPassword
+                        ? 'border-red-300 focus:ring-red-200'
+                        : 'border-gray-200 focus:ring-purple-500/30 focus:border-purple-400'
+                    }`}
                   />
+                  <button type="button" onClick={() => setShowConfirmPass(!showConfirmPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                    {showConfirmPass ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
                 </div>
+                {confirmPassword && newPassword !== confirmPassword && (
+                  <p className="text-xs text-red-500 flex items-center gap-1 mt-1">
+                    <AlertCircle size={11} /> পাসওয়ার্ড মিলছে না
+                  </p>
+                )}
               </div>
 
               <button
-                onClick={handleSave}
-                className="flex items-center gap-2 px-5 py-2.5 bg-[#1a0a4b] text-white text-sm font-bold rounded-xl hover:bg-[#2d1b6b] transition-colors"
+                onClick={handleChangePassword}
+                disabled={savingPassword}
+                className="flex items-center gap-2 px-5 py-2.5 bg-[#1a0a4b] text-white text-sm font-bold rounded-xl hover:bg-[#2d1b6b] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                <Shield size={15} />
-                Update Password
+                {savingPassword ? <Loader2 size={15} className="animate-spin" /> : <Shield size={15} />}
+                {savingPassword ? 'Updating...' : 'Update Password'}
               </button>
             </div>
 
@@ -309,9 +467,7 @@ export default function ProfilePage() {
                     <p className="text-xs text-gray-400 mt-0.5">{item.desc}</p>
                   </div>
                   <button
-                    onClick={() =>
-                      setNotifications((prev) => ({ ...prev, [item.key]: !prev[item.key] }))
-                    }
+                    onClick={() => setNotifications((prev) => ({ ...prev, [item.key]: !prev[item.key] }))}
                     className={`relative w-11 h-6 rounded-full transition-colors duration-300 flex-shrink-0 ${
                       notifications[item.key] ? 'bg-[#1a0a4b]' : 'bg-gray-200'
                     }`}
@@ -326,7 +482,7 @@ export default function ProfilePage() {
               ))}
             </div>
             <button
-              onClick={handleSave}
+              onClick={() => showToast('success', 'Notification preferences saved!')}
               className="flex items-center gap-2 px-5 py-2.5 bg-[#1a0a4b] text-white text-sm font-bold rounded-xl hover:bg-[#2d1b6b] transition-colors"
             >
               <Save size={15} />

@@ -137,9 +137,12 @@ const SidebarContent = ({ onNavigate, onClose }) => {
         >
           <div className="h-10 w-10 rounded-full overflow-hidden border border-purple-400/30 flex-shrink-0">
             <img
-              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`}
+              src={user?.avatar || `https://api.dicebear.com/9.x/initials/svg?seed=${avatarSeed}&backgroundColor=6366f1`}
               alt="User Avatar"
               className="h-full w-full object-cover"
+              onError={(e) => {
+                e.target.src = `https://api.dicebear.com/9.x/initials/svg?seed=${avatarSeed}&backgroundColor=6366f1`;
+              }}
             />
           </div>
           <div className="flex flex-col min-w-0 flex-1 text-left">
