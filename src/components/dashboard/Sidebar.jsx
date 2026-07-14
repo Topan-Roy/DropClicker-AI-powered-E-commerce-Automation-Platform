@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useNavigation } from '@/context/NavigationContext';
 import Image from 'next/image';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { logoutUser } from '@/redux/slices/authSlice';
 
 const menuItems = [
@@ -29,6 +29,12 @@ const SidebarContent = ({ onNavigate, onClose }) => {
   const router = useRouter();
   const pathname = usePathname();
   const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
+
+  const displayName = user?.name || user?.fullName || 'Admin';
+  const displayEmail = user?.email || '';
+  const displayRole = user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : '';
+  const avatarSeed = encodeURIComponent(displayName);
 
   const handleLogout = () => {
     dispatch(logoutUser());
@@ -101,14 +107,19 @@ const SidebarContent = ({ onNavigate, onClose }) => {
         >
           <div className="h-10 w-10 rounded-full overflow-hidden border border-purple-400/30 flex-shrink-0">
             <img
-              src="https://api.dicebear.com/7.x/avataaars/svg?seed=Jenny"
+              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`}
               alt="User Avatar"
               className="h-full w-full object-cover"
             />
           </div>
           <div className="flex flex-col min-w-0 flex-1 text-left">
-            <span className="text-sm font-bold text-white truncate">Jenny Wilson</span>
-            <span className="text-[11px] text-gray-400 truncate">jen.wilson@example.com</span>
+            <span className="text-sm font-bold text-white truncate">{displayName}</span>
+            <span className="text-[11px] text-gray-400 truncate">{displayEmail}</span>
+            {displayRole && (
+              <span className="mt-0.5 inline-block text-[10px] font-semibold uppercase tracking-wider text-purple-300 bg-purple-500/20 rounded-full px-2 py-0.5 w-fit">
+                {displayRole}
+              </span>
+            )}
           </div>
           <ChevronRight
             size={15}
