@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchAllUsers, deleteUser } from '@/redux/slices/adminSlice';
+import { fetchAllUsers, deleteUser, updateUserRole } from '@/redux/slices/adminSlice';
 import UserStatCard from '@/components/dashboard/users/UserStatCard';
 import UserSearchBar from '@/components/dashboard/users/UserSearchBar';
 import UsersTable from '@/components/dashboard/users/UsersTable';
@@ -42,6 +42,7 @@ export default function UsersPage() {
   // ── Handlers ───────────────────────────────────────────────────
   const handleDelete = (id) => dispatch(deleteUser(id));
   const handleView   = (user) => setViewUser(user);
+  const handleUpdateRole = (id, role) => dispatch(updateUserRole({ userId: id, role }));
 
   // ── Loading skeleton ───────────────────────────────────────────
   if (usersLoading) {
@@ -94,6 +95,7 @@ export default function UsersPage() {
         data={filtered}
         onView={handleView}
         onDelete={handleDelete}
+        onUpdateRole={handleUpdateRole}
       />
 
       {/* SECTION 4: View User Modal */}

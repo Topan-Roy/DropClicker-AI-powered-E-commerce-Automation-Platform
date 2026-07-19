@@ -46,6 +46,19 @@ export const deleteUser = createAsyncThunk(
   }
 );
 
+// Update a user's role
+export const updateUserRole = createAsyncThunk(
+  'admin/updateUserRole',
+  async ({ userId, role }, { rejectWithValue }) => {
+    try {
+      const response = await api.patch(`/admin/users/${userId}/role`, { role });
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to update user role');
+    }
+  }
+);
+
 const adminSlice = createSlice({
   name: 'admin',
   initialState: {
@@ -100,6 +113,14 @@ const adminSlice = createSlice({
           (u) => (u._id || u.id) !== action.payload
         );
         state.totalUsers = state.users.length;
+      })
+
+      // Update user role
+      .addCase(updateUserRole.fulfilled, (state, action) => {
+        const updatedUser = action.payload;
+        state.users = state.users.map((u) =>
+          (u._id || u.id) === (updatedUser._id || updatedUser.id) ? updatedUser : u
+        );
       });
   },
 });

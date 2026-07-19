@@ -2,7 +2,7 @@
 import UserRoleBadge from './UserRoleBadge';
 import UserActionMenu from './UserActionMenu';
 
-export default function UsersTable({ data, onView, onDelete }) {
+export default function UsersTable({ data, onView, onDelete, onUpdateRole }) {
   if (!data || data.length === 0) {
     return (
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-16 text-center">
@@ -64,6 +64,7 @@ export default function UsersTable({ data, onView, onDelete }) {
                     user={user}
                     onView={onView}
                     onDelete={onDelete}
+                    onUpdateRole={onUpdateRole}
                   />
                 </td>
               </tr>
