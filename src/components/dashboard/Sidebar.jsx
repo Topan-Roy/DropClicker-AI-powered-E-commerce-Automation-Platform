@@ -5,7 +5,7 @@
 import React from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import {
-  LayoutDashboard, Users, Truck, Package, Layers,
+  LayoutDashboard, Users, Truck, Package, Layers, Tag,
   ShoppingCart, Megaphone, FileText, Settings, LogOut, X, ChevronRight,
 } from 'lucide-react';
 import { useNavigation } from '@/context/NavigationContext';
@@ -20,6 +20,7 @@ const menuItems = [
   { name: 'Users', icon: Users, path: '/dashboard/users' },
   { name: 'Supplier Hub', icon: Truck, path: '/dashboard/suppliers' },
   { name: 'Products', icon: Package, path: '/dashboard/products' },
+  { name: 'Categories', icon: Tag, path: '/dashboard/categories' },
   { name: 'Collections', icon: Layers, path: '/dashboard/collections' },
   { name: 'Order', icon: ShoppingCart, path: '/dashboard/orders' },
   { name: 'Announcements', icon: Megaphone, path: '/dashboard/announcements' },

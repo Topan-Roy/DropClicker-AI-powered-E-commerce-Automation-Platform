@@ -19,6 +19,15 @@ export const fetchProductById = createAsyncThunk('products/fetchById', async (id
   }
 });
 
+export const createProduct = createAsyncThunk('products/create', async (productData, { rejectWithValue }) => {
+  try {
+    const response = await api.post('/products', productData);
+    return response.data.data;
+  } catch (error) {
+    return rejectWithValue(error.response?.data?.message || 'Failed to create product');
+  }
+});
+
 const productSlice = createSlice({
   name: 'products',
   initialState: {
@@ -38,10 +47,12 @@ const productSlice = createSlice({
       })
       .addCase(fetchProducts.fulfilled, (state, action) => {
         state.loading = false;
-        state.items = action.payload.data;
-        state.total = action.payload.total;
-        state.page = action.payload.page;
-        state.limit = action.payload.limit;
+        // Handle both structure cases: array directly or object containing data array
+        const payload = action.payload;
+        state.items = Array.isArray(payload) ? payload : (payload?.data || []);
+        state.total = Array.isArray(payload) ? payload.length : (payload?.total || 0);
+        state.page = payload?.page || 1;
+        state.limit = payload?.limit || 20;
       })
       .addCase(fetchProducts.rejected, (state, action) => {
         state.loading = false;
@@ -57,6 +68,10 @@ const productSlice = createSlice({
       .addCase(fetchProductById.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      .addCase(createProduct.fulfilled, (state, action) => {
+        state.items = [action.payload, ...state.items];
+        state.total += 1;
       });
   },
 });
