@@ -33,6 +33,7 @@ export default function ProductsPage() {
 
   const [showAddModal, setShowAddModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const filterRef = useRef(null);
   const sortRef = useRef(null);
@@ -72,6 +73,52 @@ export default function ProductsPage() {
       };
     });
   }, [productsItems]);
+
+  const handleExportCSV = () => {
+    if (!formattedProducts || formattedProducts.length === 0) {
+      alert("No products to export.");
+      return;
+    }
+
+    const headers = ["Title", "SKU", "Status", "Stock", "Cost Price", "Retail Price", "Category", "Margin", "Image"];
+    const csvRows = [headers.join(",")];
+
+    for (const p of formattedProducts) {
+      const row = [
+        `"${p.name.replace(/"/g, '""')}"`,
+        `"${p.sku}"`,
+        `"${p.status}"`,
+        p.stock,
+        p.cost,
+        p.price,
+        `"${p.category}"`,
+        p.margin,
+        `"${p.image}"`
+      ];
+      csvRows.push(row.join(","));
+    }
+
+    const csvString = csvRows.join("\n");
+    const blob = new Blob([csvString], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `products_export_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleFeedSync = async () => {
+    setIsSyncing(true);
+    try {
+      await dispatch(fetchProducts()).unwrap();
+    } catch (error) {
+      console.error("Failed to sync feed:", error);
+    } finally {
+      setTimeout(() => setIsSyncing(false), 500); // small delay to make the spin visible
+    }
+  };
 
   // Dynamic statistics
   const dynamicStats = useMemo(() => {
@@ -148,7 +195,7 @@ export default function ProductsPage() {
             <Upload size={15} />
             <span className=" xs:inline">Import CSV</span>
           </button>
-          <button className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all shadow-sm active:scale-95">
+          <button onClick={handleExportCSV} className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all shadow-sm active:scale-95">
             <Download size={15} />
             <span className=" xs:inline">Export CSV</span>
           </button>
@@ -156,9 +203,13 @@ export default function ProductsPage() {
 
         {/* Right: Sync + Add */}
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all shadow-sm active:scale-95">
-            <RefreshCw size={15} />
-            <span className=" xs:inline">Feed Sync</span>
+          <button 
+            onClick={handleFeedSync}
+            disabled={isSyncing}
+            className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 sm:px-4 py-2.5 text-xs sm:text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-all shadow-sm active:scale-95 disabled:opacity-70 disabled:cursor-wait"
+          >
+            <RefreshCw size={15} className={isSyncing ? "animate-spin text-blue-500" : ""} />
+            <span className=" xs:inline">{isSyncing ? "Syncing..." : "Feed Sync"}</span>
           </button>
           <button
             onClick={() => setShowAddModal(true)}
