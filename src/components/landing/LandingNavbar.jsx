@@ -13,12 +13,12 @@ const LandingNavbar = () => {
   const observerRef = useRef(null);
 
   const navLinks = [
-    { name: "How it Works", href: "#how-it-works", id: "how-it-works" },
-    { name: "Features", href: "#features", id: "features" },
-    { name: "Categories", href: "#explore-categories", id: "explore-categories" },
-    { name: "Trending", href: "#trending-marketplace", id: "trending-marketplace" },
-    { name: "Pricing", href: "#pricing", id: "pricing" },
-    { name: "FAQ", href: "#faq", id: "faq" },
+    { name: "How it Works", id: "how-it-works" },
+    { name: "Features", id: "features" },
+    { name: "Categories", id: "explore-categories" },
+    { name: "Trending", id: "trending-marketplace" },
+    { name: "Pricing", id: "pricing" },
+    { name: "FAQ", id: "faq" },
   ];
 
   const { isAuthenticated, user } = useSelector((state) => state.auth);
@@ -58,6 +58,8 @@ const LandingNavbar = () => {
         ([entry]) => {
           if (entry.isIntersecting) {
             setActiveSection(id);
+            // Update URL quietly without creating infinite history entries
+            window.history.replaceState(null, '', '/' + id);
           }
         },
         { rootMargin: '-30% 0px -60% 0px', threshold: 0 }
@@ -68,6 +70,16 @@ const LandingNavbar = () => {
 
     observerRef.current = observers;
     return () => observers.forEach((obs) => obs.disconnect());
+  }, []);
+
+  // Handle direct navigation to paths like /how-it-works
+  useEffect(() => {
+    const path = window.location.pathname.replace('/', '');
+    if (path && navLinks.some(l => l.id === path)) {
+      setTimeout(() => {
+        document.getElementById(path)?.scrollIntoView({ behavior: 'smooth' });
+      }, 300);
+    }
   }, []);
 
   return (
@@ -98,9 +110,12 @@ const LandingNavbar = () => {
           {navLinks.map((link) => {
             const isActive = activeSection === link.id;
             return (
-              <Link
+              <button
                 key={link.name}
-                href={link.href}
+                onClick={() => {
+                  document.getElementById(link.id)?.scrollIntoView({ behavior: 'smooth' });
+                  window.history.pushState(null, '', '/' + link.id);
+                }}
                 className={`relative text-sm font-medium transition-colors duration-200 group ${
                   isActive ? 'text-blue-600' : 'text-gray-500 hover:text-blue-600'
                 }`}
@@ -112,7 +127,7 @@ const LandingNavbar = () => {
                     isActive ? 'w-full' : 'w-0 group-hover:w-full'
                   }`}
                 />
-              </Link>
+              </button>
             );
           })}
         </div>
@@ -169,18 +184,21 @@ const LandingNavbar = () => {
             {navLinks.map((link) => {
               const isActive = activeSection === link.id;
               return (
-                <Link
+                <button
                   key={link.name}
-                  href={link.href}
-                  onClick={() => setIsMenuOpen(false)}
-                  className={`px-4 py-2.5 text-sm font-semibold rounded-xl transition-all ${
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    document.getElementById(link.id)?.scrollIntoView({ behavior: 'smooth' });
+                    window.history.pushState(null, '', '/' + link.id);
+                  }}
+                  className={`px-4 py-2.5 text-sm font-semibold rounded-xl text-left transition-all ${
                     isActive
                       ? 'text-blue-600 bg-blue-50'
                       : 'text-gray-600 hover:text-blue-600 hover:bg-blue-50/50'
                   }`}
                 >
                   {link.name}
-                </Link>
+                </button>
               );
             })}
           </div>
